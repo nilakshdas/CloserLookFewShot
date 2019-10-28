@@ -7,6 +7,7 @@ import math
 import numpy as np
 import torch.nn.functional as F
 from torch.nn.utils.weight_norm import WeightNorm
+from torchvision import models
 
 # Basic ResNet model
 
@@ -405,5 +406,22 @@ def ResNet101( flatten = True):
     return ResNet(BottleneckBlock, [3,4,23,3],[256,512,1024,2048], flatten)
 
 
+class VGG16(nn.Module):
+    def __init__(self, flatten=True):
+        super(VGG16, self).__init__()
+        model = models.vgg16(pretrained=False)
+        if flatten:
+            trunk = list(model.features)
+            trunk.append(model.avgpool)
+            trunk.append(Flatten())
+            self.trunk = nn.Sequential(*trunk)
+            self.final_feat_dim = model.classifier[0].in_features
+        else:
+            raise NotImplementedError(
+                "Un-flattened output not supported for VGG-16")
+
+    def forward(self, x):
+        out = self.trunk(x)
+        return out
 
 
