@@ -5,6 +5,7 @@ from torch.autograd import Variable
 import torch.optim
 import torch.optim.lr_scheduler as lr_scheduler
 import time
+from tqdm import trange
 import os
 import glob
 
@@ -25,9 +26,10 @@ def train(base_loader, val_loader, model, optimization, start_epoch, stop_epoch,
     else:
        raise ValueError('Unknown optimization, please define by yourself')
 
-    max_acc = 0       
+    max_acc = 0
 
-    for epoch in range(start_epoch,stop_epoch):
+    pbar = trange(start_epoch, stop_epoch)
+    for epoch in pbar:
         model.train()
         model.train_loop(epoch, base_loader,  optimizer ) #model are called by reference, no need to return 
         model.eval()
@@ -37,7 +39,6 @@ def train(base_loader, val_loader, model, optimization, start_epoch, stop_epoch,
 
         acc = model.test_loop( val_loader)
         if acc > max_acc : #for baseline and baseline++, we don't use validation in default and we let acc = -1, but we allow options to validate with DB index
-            print("best model! save...")
             max_acc = acc
             outfile = os.path.join(params.checkpoint_dir, 'best_model.tar')
             torch.save({'epoch':epoch, 'state':model.state_dict()}, outfile)
@@ -45,6 +46,8 @@ def train(base_loader, val_loader, model, optimization, start_epoch, stop_epoch,
         if (epoch % params.save_freq==0) or (epoch==stop_epoch-1):
             outfile = os.path.join(params.checkpoint_dir, '{:d}.tar'.format(epoch))
             torch.save({'epoch':epoch, 'state':model.state_dict()}, outfile)
+
+        pbar.set_postfix(test_accuracy=acc)
 
     return model
 
